@@ -38,7 +38,7 @@ public interface BreakoutConstants {
 	/** 
 	 * Number of rows of bricks
 	 */
-	public static final int NBRICK_ROWS = 2;
+	public static final int NBRICK_ROWS = 10;
 
 	/**
 	 * Separation between neighboring bricks, in pixels

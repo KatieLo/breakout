@@ -1,4 +1,13 @@
-// TODO: comment this program
+/**
+ * Breakout Game
+ *
+ * This file contains the class Breakout, which is an animated, asynchronous interactive game.
+ * The constants referred to in this file can be found in the BreakoutConstants.java file. 
+ * The game features a wall of multicolored bricks, which need to be eliminated by hitting the bricks with the ball, 
+ * using the paddle. The paddle moves left and right when the mouse is moved. The game is won by clearing all the bricks, and lost 
+ * if the ball hits the bottom of the window three times. 
+ * 
+ */
 
 import acm.graphics.*;     // GOval, GRect, etc.
 import acm.program.*;      // GraphicsProgram
@@ -11,12 +20,22 @@ import java.math.*;
 
 public class Breakout extends GraphicsProgram implements BreakoutConstants {
 	
-	// fields for ball velocity
+	/**
+	 * Fields for the velocity of the ball
+	 */
 	double xVelocity = 3.0; 
 	double yVelocity = 3.0;
 	
-	// Number of turns left 
+	/**
+	 * Field for the number of turns the player has left
+	 */
 	int turnsRemaining = NTURNS;
+	
+	/**
+	 * Fields for the animated ball and the moving paddle
+	 */
+	private GRect movingPaddle;
+	private GOval ball;
 	
 	
 	public void run() {
@@ -27,7 +46,11 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 		bouncingBall();
 	}
 	
-	// Random velocity Function
+	/**
+	 * Generates a random velocity between VELOCITY_MIN and VELOCITY_MAX, excluding
+	 * -1 to 1 because they make the game too easy.
+	 * @return a random velocity between VELOCITY_MIN and VELOCITY_MAX, excluding the range -1 to 1. 
+	 */
 	private double randomVelocity(){
 		RandomGenerator moveRandom = RandomGenerator.getInstance();
 		double velocity = moveRandom.nextDouble(VELOCITY_MIN, VELOCITY_MAX);
@@ -40,14 +63,18 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 	
 	
 	// Set Up Bricks 
+	/**
+	 * Prints a wall of bricks with NBRICK_ROWS rows and NBRICKS_PER_ROW in each row.
+	 */
 	private void setBricks() {
 		double x = (BOARD_WIDTH - NBRICKS_PER_ROW * (BRICK_WIDTH + BRICK_SEP))/2;
 		double y = BRICK_Y_OFFSET;
 		
-		// PRINT BRICKS - 2 ROWS OF EACH COLOR. starts at (x + brick-sep, y) and prints NBricks_per_row 
+		// Prints two rows of each color of bricks. 
 		for(int i = 0; i < NBRICK_ROWS; i++){
+			
 			double yOffset = (BRICK_HEIGHT + BRICK_SEP) * i;
-			// sets bricks color sequence as red, orange, yellow, green, cyan with two rows of each color
+			// Sets bricks color sequence as red, orange, yellow, green, cyan
 			Color brickColor = new Color(1);
 			if (i % 10 == 0 || i % 10 == 1){
 				brickColor = Color.RED;
@@ -62,7 +89,7 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			}
 			
 			for (int j = 0; j < NBRICKS_PER_ROW; j++ ){
-				//prints a row or bricks
+				// Prints a row or bricks
 				double xOffset = (BRICK_WIDTH + BRICK_SEP) * j;
 				GRect brick = new GRect((x +  xOffset), (y + yOffset), BRICK_WIDTH, BRICK_HEIGHT );
 				brick.setColor(brickColor);
@@ -73,7 +100,10 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 		}
 	}
 	
-	// build paddle.
+	// Build paddle
+	/**
+	 * Builds a moving paddle in the bottom center of the window that follows the mouse movements in the x-direction.
+	 */
 		public void init(){
 			double y = getHeight() - PADDLE_Y_OFFSET;
 			double x = (getWidth() - PADDLE_WIDTH)/2;;
@@ -85,7 +115,7 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			
 		}
 		
-		//called on mouse drag to reposition the paddle 	
+		// Repositions the paddle when the mouse is moved and prevents the paddle going outside the window.  	
 		public void mouseMoved(MouseEvent e) {
 			double mousePosition = e.getX();
 			double xpos;
@@ -101,12 +131,19 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			movingPaddle.setLocation(xpos, getHeight() - PADDLE_Y_OFFSET);
 		}
 		
-		// Private instance variables (fields) used
-		private GRect movingPaddle; // The paddle being dragged
-		private GOval ball;
+		
+		
 		
 		// Create bouncing Ball
+		/**
+		 * The ball moves around the screen according to xVelocity and yVelocity, bouncing off walls.
+		 * If the ball hits a brick, the brick is removed. When the ball hits the last brick, the game is won.
+		 * If the ball hits the middle of the paddle, its velocity is reversed. If it hits the edges, it's velocity increases in the opposite x-direction. 
+		 * If the ball hits the bottom window, a turn is ended and after three turns, the game is lost. 
+		 * The ball's velocity increases as the number of bricks remaining decreases.
+		 */
 		public void bouncingBall(){
+			// Ball begins centered in the window
 			double x =  (getWidth() - (BALL_RADIUS * 2))/2;
 			double y = (getHeight() - (BALL_RADIUS * 2))/2;
 			ball = new GOval((BALL_RADIUS * 2), (BALL_RADIUS * 2));
@@ -117,9 +154,10 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			int brickCount = (NBRICKS_PER_ROW * NBRICK_ROWS);
 			int numBricks = (NBRICKS_PER_ROW * NBRICK_ROWS);
 			
-			//ball bouncing animation loop [Main part of Game]
+			// Ball bouncing animation loop
 			while (turnsRemaining > 0){
 				ball.move(xVelocity, yVelocity);
+				// Ball speed increases as bricks are removed
 				double new_delay = (DELAY/(1 + ((numBricks - brickCount)/(double)numBricks)));
 				pause(new_delay);
 				
@@ -127,6 +165,7 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 				double ballX = ballLocation.getX();
 				double ballY = ballLocation.getY();	
 				
+				// If the ball hits the bottom window, a turn is ended. The next turn starts when the user clicks the mouse
 				if(ballY >  (getHeight() - (BALL_RADIUS * 2))){
 					turnsRemaining--;
 					GLabel endTurn = new GLabel("You have " + turnsRemaining + " lives left. Click to start a new turn.", 200, 150);
@@ -149,6 +188,7 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 					}
 					
 				}
+				// Ball bounces off the top, left and right sides of the window
 				if(ballX > (getWidth() - (BALL_RADIUS * 2)) || ballX < 0){
 					xVelocity = xVelocity * (-1);
 				}
@@ -156,7 +196,9 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 					yVelocity = yVelocity * (-1);
 				}
 				
+				
 				GObject objectHit = collider(ballX, ballY);	
+				// If the ball hits the paddle, it is deflected. If it hits a brick, the brick is removed.
 				if (objectHit != null){
 					 if (objectHit == movingPaddle){
 						 yVelocity = yVelocity * (-1); 
@@ -181,14 +223,14 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 				}
 			}
 			if (brickCount == 0){
-				// display "you won"
+				// The user has won the game
 				GLabel won = new GLabel("You've won!", 200, 150);
 				won.setColor(Color.GREEN);
 				won.setFont("sansSerif-36");
 				add(won, (getWidth() - won.getWidth())/2, (getHeight() - won.getHeight())/2);
 			
 			} else {
-				//display "game over, you've lost"
+				// The user has lost the game
 				GLabel lost = new GLabel("Game Over, you've lost", 200, 150);
 				lost.setColor(Color.RED);
 				lost.setFont("sansSerif-36");
@@ -199,8 +241,12 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			
 		
 		// Method to calculate if ball collides with an object 
-		// It returns the object the ball collides with, or null if there was no collision. It takes in the ball's top-left
-		// containing square's coordinates as parameters. 
+		/**
+		 * This method calculates if the ball has collided with an object. The ball's top left, top right, bottom let and bottom right corners are
+		 * checked for collision with an object.
+		 * @param It takes the ball's containing square's top-left x and y coordinates as parameters
+		 * @return It returns the object the ball collided with, or null if there was no collision
+		 */
 		private GObject collider(double x, double y){
 			GObject hitTopLeft = getElementAt(x, y);
 			GObject hitTopRight = getElementAt(x + (BALL_RADIUS * 2), y);
@@ -213,11 +259,9 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			} else if (hitBottomLeft != null){
 				return hitBottomLeft;
 			} else {
-				return hitBottomRight; // hitBottomRight == null if it is not hit, so if no object is hit, returns null
+				// hitBottomRight equals null if hitBottomRight is not hit, so if no object is hit, the function returns null
+				return hitBottomRight; 
 			}
 		}
-		
-		
-		
 		
 }
