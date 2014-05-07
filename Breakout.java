@@ -42,6 +42,7 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 		xVelocity = randomVelocity();
 		setSize(APPLICATION_WIDTH, APPLICATION_HEIGHT);	
 		setBricks();
+		buildMovingPaddle();
 		addMouseListeners();
 		bouncingBall();
 	}
@@ -100,11 +101,10 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 		}
 	}
 	
-	// Build paddle
 	/**
 	 * Builds a moving paddle in the bottom center of the window that follows the mouse movements in the x-direction.
 	 */
-		public void init(){
+		public void buildMovingPaddle(){
 			double y = getHeight() - PADDLE_Y_OFFSET;
 			double x = (getWidth() - PADDLE_WIDTH)/2;;
 			movingPaddle = new GRect(PADDLE_WIDTH, PADDLE_HEIGHT);
@@ -115,7 +115,9 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			
 		}
 		
-		// Repositions the paddle when the mouse is moved and prevents the paddle going outside the window.  	
+		/**
+		 *  Repositions the paddle when the mouse is moved and prevents the paddle going outside the window.  	
+		 */
 		public void mouseMoved(MouseEvent e) {
 			double mousePosition = e.getX();
 			double xpos;
@@ -132,10 +134,8 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 		}
 		
 		
-		
-		
-		// Create bouncing Ball
 		/**
+		 * Method creates and animates the bouncing ball.
 		 * The ball moves around the screen according to xVelocity and yVelocity, bouncing off walls.
 		 * If the ball hits a brick, the brick is removed. When the ball hits the last brick, the game is won.
 		 * If the ball hits the middle of the paddle, its velocity is reversed. If it hits the edges, it's velocity increases in the opposite x-direction. 
@@ -157,7 +157,7 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			// Ball bouncing animation loop
 			while (turnsRemaining > 0){
 				ball.move(xVelocity, yVelocity);
-				// Ball speed increases as bricks are removed
+				// As bricks are removed, the speed of the balls increases from the initial speed, DELAY, until twice the initial speed.
 				double new_delay = (DELAY/(1 + ((numBricks - brickCount)/(double)numBricks)));
 				pause(new_delay);
 				
@@ -168,23 +168,21 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 				// If the ball hits the bottom window, a turn is ended. The next turn starts when the user clicks the mouse
 				if(ballY >  (getHeight() - (BALL_RADIUS * 2))){
 					turnsRemaining--;
-					GLabel endTurn = new GLabel("You have " + turnsRemaining + " lives left. Click to start a new turn.", 200, 150);
-					endTurn.setColor(Color.ORANGE);
-					endTurn.setFont("sansSerif-18");
-					GLabel endLastTurn = new GLabel("You have 1 life left. Click to start your last turn.", 200, 150);
-					endLastTurn.setColor(Color.ORANGE);
-					endLastTurn.setFont("sansSerif-18");
 					if (turnsRemaining > 0){
+						GLabel message;
 						if(turnsRemaining > 1){
-							add(endTurn, (getWidth() - endTurn.getWidth())/2, (getHeight() - endTurn.getHeight())/2);
+							message = new GLabel("You have " + turnsRemaining + " lives left. Click to start a new turn.", 200, 150);
+
 						} else {
-							add(endLastTurn, (getWidth() - endTurn.getWidth())/2, (getHeight() - endTurn.getHeight())/2);
+							message = new GLabel("You have 1 life left. Click to start your last turn.", 200, 150);
 						}
+						message.setColor(Color.ORANGE);
+						message.setFont("sansSerif-18");
+						add(message, (getWidth() - message.getWidth())/2, (getHeight() - message.getHeight())/2);
 						waitForClick();
-						remove(endTurn);
-						remove(endLastTurn);
+						remove(message);
 						ball.setLocation(x, y);
-						xVelocity = randomVelocity();	
+						xVelocity = randomVelocity();
 					}
 					
 				}
@@ -201,16 +199,31 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 				// If the ball hits the paddle, it is deflected. If it hits a brick, the brick is removed.
 				if (objectHit != null){
 					 if (objectHit == movingPaddle){
-						 yVelocity = yVelocity * (-1); 
+						 
 						 GPoint paddleLocation = movingPaddle.getLocation();
 						 double paddleEdge = paddleLocation.getX();
-						 if ((ballX + BALL_RADIUS) < paddleEdge + (0.1 * PADDLE_WIDTH)){
-							 xVelocity += -1;
-						 } else if ((ballX + BALL_RADIUS) > paddleEdge + (0.9 * PADDLE_WIDTH)){
-							 xVelocity += 1;
+						 double rightEdgeOfBall = ballX + 2 * BALL_RADIUS;
+						 double rightPaddleEdge = paddleEdge + PADDLE_WIDTH;
+						 
+						 // Prevents the ball from getting stuck in the paddle by reversing x-velocity when ball hits paddle side-on
+						 if(rightEdgeOfBall == paddleEdge || rightPaddleEdge == ballX){
+							 xVelocity = xVelocity * (-1);
+						 } else { // normal hitting of paddle
+							 // only reverse ball's y-velocity if it is traveling downwards
+							 if(yVelocity > 0){
+								 yVelocity = yVelocity * (-1); 
+							 }
+							 
+							 // if the ball hits the left or right top edges of the paddle, it adds x-velocity
+							 if ((ballX + BALL_RADIUS) < paddleEdge + (0.1 * PADDLE_WIDTH)){
+								 xVelocity += -1;
+							 } else if ((ballX + BALL_RADIUS) > paddleEdge + (0.9 * PADDLE_WIDTH)){
+								 xVelocity += 1;
+							 }
 						 }
-						
+				
 					}  else {
+						// If the ball hit something that is not the paddle or window, it has hit a brick. Plays a hitting sound when the ball hits a brick and removes the brick
 						AudioClip bounceClip = MediaTools.loadAudioClip("res/bounce.au");
 						bounceClip.play();
 						remove(objectHit);
@@ -238,9 +251,6 @@ public class Breakout extends GraphicsProgram implements BreakoutConstants {
 			}
 		}
 				
-			
-		
-		// Method to calculate if ball collides with an object 
 		/**
 		 * This method calculates if the ball has collided with an object. The ball's top left, top right, bottom let and bottom right corners are
 		 * checked for collision with an object.
